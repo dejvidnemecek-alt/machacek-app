@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Macháček</title>
+<style>
+  :root{
+    --felt-dark:#0c2a1c;
+    --felt:#123a26;
+    --felt-light:#1c5138;
+    --wood:#7a4a26;
+    --wood-dark:#5c3618;
+    --parchment:#f3ead2;
+    --parchment-dark:#e6d9b8;
+    --ink:#2b2118;
+    --gold:#cc9f2c;
+    --gold-dark:#a17f1f;
+    --danger:#a83e35;
+    --danger-dark:#832e27;
+    --truth:#3d7350;
+    --truth-dark:#2c5a3c;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background:
+      radial-gradient(ellipse at 50% -10%, var(--felt-light) 0%, var(--felt) 45%, var(--felt-dark) 100%);
+    color:var(--parchment);
+    min-height:100%;
+    display:flex;
+    justify-content:center;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #app{
+    width:100%;
+    max-width:460px;
+    min-height:100vh;
+    padding:18px 16px 40px;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+  h1,h2,h3{
+    font-family:Georgia,'Iowan Old Style','Times New Roman',serif;
+    margin:0;
+  }
+  .brand{
+    text-align:center;
+    margin-bottom:18px;
+  }
+  .brand h1{
+    font-size:2.4em;
+    letter-spacing:1px;
+    color:var(--gold);
+    text-shadow:0 2px 0 rgba(0,0,0,.35);
+  }
+  .brand p{
+    margin:4px 0 0;
+    font-size:.85em;
+    color:var(--parchment-dark);
+    opacity:.75;
+  }
+  .card{
+    background:var(--parchment);
+    color:var(--ink);
+    border-radius:14px;
+    padding:18px;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+    border:1px solid var(--wood-dark);
+    margin-bottom:14px;
+  }
+  .card h2{
+    font-size:1.15em;
+    margin-bottom:10px;
+    color:var(--wood-dark);
+  }
+  label{
+    display:block;
+    font-size:.8em;
+    font-weight:600;
+    margin-bottom:6px;
+    color:var(--wood-dark);
+  }
+  input[type=text]{
+    width:100%;
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid #c9b98c;
+    background:#fffdf7;
+    font-size:1em;
+    color:var(--ink);
+  }
+  input[type=text]:focus{outline:2px solid var(--gold);}
+  .row{display:flex;gap:8px;}
+  .row > *{flex:1;}
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+  }
+  .btn{
+    padding:12px 16px;
+    border-radius:10px;
+    font-size:1em;
+    font-weight:700;
+    transition:transform .08s ease, filter .15s ease;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-gold{background:var(--gold);color:#2b2118;}
+  .btn-gold:hover{filter:brightness(1.05);}
+  .btn-truth{background:var(--truth);color:#fff;}
+  .btn-danger{background:var(--danger);color:#fff;}
+  .btn-outline{background:transparent;border:1px solid var(--wood-dark);color:var(--wood-dark);}
+  .btn-add{background:var(--wood);color:var(--parchment);padding:10px 14px;border-radius:8px;font-weight:700;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-block{width:100%;padding:14px;font-size:1.05em;}
+
+  .player-list{list-style:none;margin:10px 0 0;padding:0;}
+  .player-list li{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:8px 10px;
+    background:#fffdf7;
+    border:1px solid #ddd0aa;
+    border-radius:8px;
+    margin-bottom:6px;
+    font-weight:600;
+  }
+  .player-list li button{
+    background:none;color:var(--danger);font-size:1.1em;font-weight:900;padding:0 6px;
+  }
+  .segmented{
+    display:flex;
+    border-radius:10px;
+    overflow:hidden;
+    border:1px solid var(--wood-dark);
+  }
+  .segmented button{
+    flex:1;
+    padding:10px;
+    background:#fffdf7;
+    color:var(--ink);
+    font-weight:700;
+    font-size:.9em;
+  }
+  .segmented button.active{
+    background:var(--wood);
+    color:var(--parchment);
+  }
+  .stepper{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    justify-content:center;
+    margin-top:10px;
+  }
+  .stepper button{
+    width:38px;height:38px;
+    border-radius:50%;
+    background:var(--wood);
+    color:var(--parchment);
+    font-size:1.2em;
+    font-weight:900;
+  }
+  .stepper .val{font-size:1.4em;font-weight:800;min-width:34px;text-align:center;}
+
+  details{margin-top:6px;}
+  summary{cursor:pointer;font-weight:700;color:var(--wood-dark);font-size:.85em;}
+  .rules-text{font-size:.85em;line-height:1.5;margin-top:8px;color:#4a3c26;}
+  .rules-text b{color:var(--wood-dark);}
+
+  /* game screen */
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+    font-size:.8em;
+    color:var(--parchment-dark);
+  }
+  .topbar button{
+    background:none;
+    color:var(--parchment-dark);
+    text-decoration:underline;
+    font-size:.95em;
+    padding:4px;
+  }
+  .scoreboard{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:14px;
+  }
+  .chip{
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.15);
+    border-radius:20px;
+    padding:5px 10px;
+    font-size:.75em;
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .chip.current{
+    background:var(--gold);
+    color:#2b2118;
+    font-weight:800;
+    border-color:var(--gold-dark);
+  }
+  .chip.out{opacity:.4;text-decoration:line-through;}
+  .lives-dots{display:flex;gap:2px;}
+  .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+  .turn-card{
+    text-align:center;
+    padding:26px 18px;
+  }
+  .turn-card .who{
+    font-size:1.5em;
+    color:var(--wood-dark);
+    margin-bottom:4px;
+  }
+  .turn-card .hint{
+    font-size:.85em;
+    color:#6b5a3c;
+    margin-bottom:18px;
+  }
+  .dice-stage{
+    display:flex;
+    justify-content:center;
+    gap:14px;
+    margin:10px 0 6px;
+    perspective:600px;
+  }
+  .die{
+    width:78px;
+    height:78px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:2.6em;
+    line-height:1;
+    color:var(--ink);
+    background:#fffdf7;
+    border:2px solid #cbb989;
+    border-radius:16px;
+    box-shadow:0 4px 10px rgba(0,0,0,.2);
+  }
+  .die.spinning{
+    animation:tumble .5s linear infinite;
+  }
+  .die.settled{
+    animation:settle .3s ease;
+  }
+  @keyframes tumble{
+    0%{transform:rotate(0deg) scale(1);}
+    50%{transform:rotate(180deg) scale(.85);}
+    100%{transform:rotate(360deg) scale(1);}
+  }
+  @keyframes settle{
+    0%{transform:scale(1.3) rotate(-10deg);}
+    60%{transform:scale(.92) rotate(4deg);}
+    100%{transform:scale(1) rotate(0);}
+  }
+  .dice-sub{font-size:.8em;color:#6b5a3c;margin:8px 0 16px;}
+
+  .prev-declared{
+    background:rgba(0,0,0,.25);
+    border-radius:10px;
+    padding:14px;
+    text-align:center;
+    margin-bottom:14px;
+    font-size:.9em;
+    color:var(--parchment-dark);
+  }
+
+  .reveal-box{
+    background:rgba(0,0,0,.25);
+    border-radius:10px;
+    padding:16px;
+    text-align:center;
+    margin-bottom:16px;
+  }
+  .reveal-box .lbl{font-size:.8em;color:var(--parchment-dark);margin-bottom:6px;}
+
+  .outcome-banner{
+    text-align:center;
+    padding:14px;
+    border-radius:10px;
+    font-weight:800;
+    font-size:1.1em;
+    margin-bottom:14px;
+  }
+  .outcome-banner.lie{background:var(--danger);color:#fff;}
+  .outcome-banner.truth{background:var(--truth);color:#fff;}
+
+  .footer-note{
+    text-align:center;
+    font-size:.7em;
+    color:var(--parchment-dark);
+    opacity:.55;
+    margin-top:auto;
+    padding-top:20px;
+  }
+
+  .winner-card{
+    text-align:center;
+    padding:32px 18px;
+  }
+  .winner-card .trophy{font-size:3em;margin-bottom:6px;}
+  .standings{list-style:none;padding:0;margin:14px 0 0;text-align:left;}
+  .standings li{
+    display:flex;
+    justify-content:space-between;
+    padding:8px 10px;
+    border-bottom:1px solid #e6d9b8;
+    font-weight:600;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Mia / Macháček ----------
+  var DICE_FACE = {"1":"⚀","2":"⚁","3":"⚂","4":"⚃","5":"⚄","6":"⚅"};
+
+  function rollDie(){ return 1 + Math.floor(Math.random()*6); }
+
+  // ---------- state ----------
+  var state = {
+    phase:"setup", // setup | rolling | spinning | revealed | pass | doubt | resolved | gameover
+    players:[], // {name, lives, losses, active}
+    mode:"lives", // lives | free
+    startingLives:3,
+    currentIndex:0,
+    previousActual:null, // {playerIndex, dice:[d1,d2]}
+    liveDice:[1,1], // dice currently shown (animating or settled)
+    round:1,
+    outcome:null, // {loser: 'declarer'|'challenger', loserIndex}
+    newPlayerName:"",
+    spinTimer:null
+  };
+
+  function activePlayers(){
+    return state.players.filter(function(p){return p.active;});
+  }
+
+  function nextActiveIndex(from){
+    var n = state.players.length;
+    var i = from;
+    for(var k=0;k<n;k++){
+      i = (i+1) % n;
+      if(state.players[i].active) return i;
+    }
+    return from;
+  }
+
+  // ---------- render root ----------
+  var root = document.getElementById("app");
+
+  function render(){
+    if(state.phase==="setup") return renderSetup();
+    if(state.phase==="gameover") return renderGameOver();
+    return renderGame();
+  }
+
+  function el(tag, cls, html){
+    var e = document.createElement(tag);
+    if(cls) e.className = cls;
+    if(html!==undefined) e.innerHTML = html;
+    return e;
+  }
+
+  // ---------- SETUP SCREEN ----------
+  function renderSetup(){
+    root.innerHTML = "";
+
+    var brand = el("div","brand","<h1>Macháček</h1><p>Blafovací hra s kostkami &middot; podávejte si mobil dokola</p>");
+    root.appendChild(brand);
+
+    var card = el("div","card");
+    card.appendChild(el("h2",null,"Hráči"));
+
+    var row = el("div","row");
+    var input = document.createElement("input");
+    input.type="text";
+    input.placeholder="Jméno hráče";
+    input.value = state.newPlayerName;
+    input.addEventListener("input", function(e){ state.newPlayerName = e.target.value; });
+    input.addEventListener("keydown", function(e){ if(e.key==="Enter"){ addPlayer(); } });
+    row.appendChild(input);
+    var addBtn = el("button","btn-add","Přidat");
+    addBtn.addEventListener("click", addPlayer);
+    row.appendChild(addBtn);
+    card.appendChild(row);
+
+    var list = el("ul","player-list");
+    state.players.forEach(function(p, idx){
+      var li = document.createElement("li");
+      var span = el("span",null,p.name);
+      li.appendChild(span);
+      var rm = el("button",null,"&times;");
+      rm.addEventListener("click", function(){ state.players.splice(idx,1); render(); });
+      li.appendChild(rm);
+      list.appendChild(li);
+    });
+    card.appendChild(list);
+    root.appendChild(card);
+
+    var modeCard = el("div","card");
+    modeCard.appendChild(el("h2",null,"Trest za prohru"));
+    var seg = el("div","segmented");
+    var b1 = el("button", state.mode==="lives"?"active":"", "Životy");
+    var b2 = el("button", state.mode==="free"?"active":"", "Volný mód");
+    b1.addEventListener("click", function(){ state.mode="lives"; render(); });
+    b2.addEventListener("click", function(){ state.mode="free"; render(); });
+    seg.appendChild(b1); seg.appendChild(b2);
+    modeCard.appendChild(seg);
+
+    if(state.mode==="lives"){
+      var stepper = el("div","stepper");
+      var minus = el("button",null,"−");
+      var val = el("div","val", state.startingLives);
+      var plus = el("button",null,"+");
+      minus.addEventListener("click", function(){ if(state.startingLives>1) state.startingLives--; render(); });
+      plus.addEventListener("click", function(){ if(state.startingLives<9) state.startingLives++; render(); });
+      stepper.appendChild(minus); stepper.appendChild(val); stepper.appendChild(plus);
+      modeCard.appendChild(el("p","rules-text","Počet životů na hráče. Kdo přijde o všechny, vypadává."));
+      modeCard.appendChild(stepper);
+    } else {
+      modeCard.appendChild(el("p","rules-text","Nikdo nevypadává &ndash; appka jen počítá, kolikrát kdo prohrál. Hráči si korigují konec sami."));
+    }
+    root.appendChild(modeCard);
+
+    var rulesCard = el("div","card");
+    var det = document.createElement("details");
+    det.appendChild(el("summary",null,"Jak se hraje Macháček?"));
+    det.appendChild(el("div","rules-text",
+      "Hráč na tahu hodí kostkami potají (mobil vidí jen on) a nahlásí ostatním svoje číslo nahlas &ndash; může klidně lhát, appka to nekontroluje. " +
+      "Další hráč se buď rozhodne <b>věřit</b> (hodí dál a nahlásí svoje číslo), nebo <b>nevěří</b> a nechá kostky odkrýt v appce. " +
+      "Pokud předchozí hráč lhal, prohrává on. Pokud mluvil pravdu, prohrává ten, kdo nevěřil.<br><br>" +
+      "<b>Pořadí hodů od nejlepšího:</b> 21 (Macháček) &gt; 11 &gt; 66 &gt; 55 &gt; 44 &gt; 33 &gt; 22 &gt; 65 &gt; 64 &gt; ... &gt; 31."
+    ));
+    rulesCard.appendChild(det);
+    root.appendChild(rulesCard);
+
+    var startBtn = el("button","btn btn-gold btn-block", "Začít hru");
+    startBtn.disabled = state.players.length < 2;
+    startBtn.addEventListener("click", startGame);
+    root.appendChild(startBtn);
+
+    root.appendChild(el("div","footer-note","Appka hází za vás &ndash; jen podávejte mobil dál."));
+  }
+
+  function addPlayer(){
+    var name = state.newPlayerName.trim();
+    if(!name) return;
+    state.players.push({name:name, lives:state.startingLives, losses:0, active:true});
+    state.newPlayerName = "";
+    render();
+  }
+
+  function startGame(){
+    state.players.forEach(function(p){ p.lives = state.startingLives; p.losses=0; p.active=true; });
+    state.currentIndex = 0;
+    state.previousActual = null;
+    state.round = 1;
+    state.phase = "rolling";
+    render();
+  }
+
+  // ---------- GAME SCREEN ----------
+  function renderGame(){
+    root.innerHTML = "";
+
+    var top = el("div","topbar");
+    top.appendChild(el("span",null,"Kolo " + state.round));
+    var endBtn = el("button",null,"Nová hra");
+    endBtn.addEventListener("click", function(){ state.phase="setup"; render(); });
+    top.appendChild(endBtn);
+    root.appendChild(top);
+
+    var scoreboard = el("div","scoreboard");
+    state.players.forEach(function(p, idx){
+      var cls = "chip" + (idx===state.currentIndex && p.active ? " current":"") + (!p.active?" out":"");
+      var chip = el("div", cls);
+      if(state.mode==="lives"){
+        chip.innerHTML = "<span>"+p.name+"</span>";
+        var dots = el("span","lives-dots");
+        for(var i=0;i<p.lives;i++){ dots.appendChild(el("span","dot")); }
+        chip.appendChild(dots);
+      } else {
+        chip.innerHTML = "<span>"+p.name+" &middot; proher: "+p.losses+"</span>";
+      }
+      scoreboard.appendChild(chip);
+    });
+    root.appendChild(scoreboard);
+
+    if(state.phase==="rolling") return renderRolling();
+    if(state.phase==="spinning" || state.phase==="revealed") return renderDiceStage();
+    if(state.phase==="pass") return renderPass();
+    if(state.phase==="doubt") return renderDoubt();
+    if(state.phase==="resolved") return renderResolved();
+  }
+
+  function renderRolling(){
+    var current = state.players[state.currentIndex];
+    var card = el("div","card turn-card");
+    card.appendChild(el("div","who","Na tahu: " + current.name));
+    if(state.previousActual){
+      card.appendChild(el("div","hint","Podej mobil hráči " + current.name + ". Ostatní se nedívejte."));
+      card.appendChild(el("div","prev-declared","Pamatuj, co bylo nahlášeno předtím &ndash; musíš říct stejně dobré nebo lepší číslo."));
+    } else {
+      card.appendChild(el("div","hint","Nové kolo. Podej mobil hráči " + current.name + ". Ostatní se nedívejte."));
+    }
+    var btn = el("button","btn btn-gold btn-block","Hodit kostkami");
+    btn.addEventListener("click", startRollAnimation);
+    card.appendChild(btn);
+    root.appendChild(card);
+  }
+
+  function startRollAnimation(){
+    var d1 = rollDie(), d2 = rollDie();
+    state.phase = "spinning";
+    state.liveDice = [rollDie(), rollDie()];
+    render();
+
+    var ticks = 0;
+    var maxTicks = 10;
+    state.spinTimer = setInterval(function(){
+      ticks++;
+      state.liveDice = [rollDie(), rollDie()];
+      if(ticks >= maxTicks){
+        clearInterval(state.spinTimer);
+        state.liveDice = [d1, d2];
+        state.phase = "revealed";
+        render();
+      } else {
+        updateDiceFaces();
+      }
+    }, 80);
+  }
+
+  function updateDiceFaces(){
+    var dEls = root.querySelectorAll(".die");
+    if(dEls.length===2){
+      dEls[0].textContent = DICE_FACE[String(state.liveDice[0])];
+      dEls[1].textContent = DICE_FACE[String(state.liveDice[1])];
+    }
+  }
+
+  function renderDiceStage(){
+    var current = state.players[state.currentIndex];
+    var spinning = state.phase === "spinning";
+    var card = el("div","card turn-card");
+    card.appendChild(el("div","who", current.name + (spinning ? " hází..." : ", tvůj hod:")));
+    card.appendChild(el("div","hint", spinning ? "" : "Jen ty se dívej."));
+
+    var stage = el("div","dice-stage");
+    var d1 = el("div","die " + (spinning ? "spinning":"settled"), DICE_FACE[String(state.liveDice[0])]);
+    var d2 = el("div","die " + (spinning ? "spinning":"settled"), DICE_FACE[String(state.liveDice[1])]);
+    stage.appendChild(d1); stage.appendChild(d2);
+    card.appendChild(stage);
+
+    if(!spinning){
+      card.appendChild(el("div","dice-sub","(padlo " + state.liveDice[0] + " a " + state.liveDice[1] + ") &ndash; řekni ostatním nahlas svoje číslo, klidně zalži!"));
+      var btn = el("button","btn btn-gold btn-block","Řekl/a jsem, předej dál");
+      btn.addEventListener("click", function(){
+        state.previousActual = { playerIndex: state.currentIndex, dice: state.liveDice.slice() };
+        state.currentIndex = nextActiveIndex(state.currentIndex);
+        state.phase = "pass";
+        render();
+      });
+      card.appendChild(btn);
+    }
+    root.appendChild(card);
+  }
+
+  function renderPass(){
+    var next = state.players[state.currentIndex];
+    var prevPlayer = state.players[state.previousActual.playerIndex];
+    var card = el("div","card turn-card");
+    card.appendChild(el("div","who","Předej mobil: " + next.name));
+    card.appendChild(el("div","hint","Co řekl/a " + prevPlayer.name + "? Věříš tomu?"));
+
+    var believeBtn = el("button","btn btn-truth btn-block","Věřím – hodím dál");
+    believeBtn.style.marginBottom = "10px";
+    believeBtn.addEventListener("click", function(){ state.phase="rolling"; render(); });
+    card.appendChild(believeBtn);
+
+    var doubtBtn = el("button","btn btn-danger btn-block","Nevěřím – ukázat kostky");
+    doubtBtn.addEventListener("click", function(){ state.phase="doubt"; render(); });
+    card.appendChild(doubtBtn);
+
+    root.appendChild(card);
+  }
+
+  function renderDoubt(){
+    var pa = state.previousActual;
+    var declarer = state.players[pa.playerIndex];
+    var challenger = state.players[state.currentIndex];
+
+    var card = el("div","card turn-card");
+    card.appendChild(el("div","who","Odhaleno!"));
+
+    var box = el("div","reveal-box");
+    box.innerHTML = "<div class='lbl'>" + declarer.name + " měl/a doopravdy</div>" +
+      "<div class='dice-stage' style='margin:8px 0 0;'>" +
+        "<div class='die settled'>" + DICE_FACE[String(pa.dice[0])] + "</div>" +
+        "<div class='die settled'>" + DICE_FACE[String(pa.dice[1])] + "</div>" +
+      "</div>" +
+      "<div class='dice-sub' style='margin-top:8px;'>(" + pa.dice[0] + " a " + pa.dice[1] + ")</div>";
+    card.appendChild(box);
+
+    card.appendChild(el("div","hint","Podle toho, co "+declarer.name+" nahlásil/a nahlas, kdo prohrál?"));
+
+    var lieBtn = el("button","btn btn-danger btn-block", declarer.name + " lhal/a – prohrává");
+    lieBtn.style.marginBottom="10px";
+    lieBtn.addEventListener("click", function(){ applyVerdict(true); });
+    card.appendChild(lieBtn);
+
+    var truthBtn = el("button","btn btn-truth btn-block", challenger.name + " se spletl/a – prohrává");
+    truthBtn.addEventListener("click", function(){ applyVerdict(false); });
+    card.appendChild(truthBtn);
+
+    root.appendChild(card);
+  }
+
+  function applyVerdict(liar){
+    var pa = state.previousActual;
+    var declarerIdx = pa.playerIndex;
+    var challengerIdx = state.currentIndex;
+    var loserIdx = liar ? declarerIdx : challengerIdx;
+
+    var loser = state.players[loserIdx];
+    if(state.mode==="lives"){
+      loser.lives -= 1;
+      if(loser.lives <= 0){ loser.active = false; }
+    } else {
+      loser.losses += 1;
+    }
+
+    state.outcome = { liar: liar, declarerIdx: declarerIdx, challengerIdx: challengerIdx, loserIdx: loserIdx };
+    state.phase = "resolved";
+    render();
+  }
+
+  function renderResolved(){
+    var oc = state.outcome;
+    var declarer = state.players[oc.declarerIdx];
+    var challenger = state.players[oc.challengerIdx];
+    var loser = state.players[oc.loserIdx];
+
+    var card = el("div","card");
+    var banner = el("div","outcome-banner " + (oc.liar ? "lie":"truth"),
+      oc.liar ? (declarer.name + " lhal/a!") : (declarer.name + " mluvil/a pravdu!"));
+    card.appendChild(banner);
+
+    var resultText = loser.name + " prohrává tohle kolo";
+    if(state.mode==="lives"){
+      resultText += loser.active ? " a ztrácí život (zbývá " + loser.lives + ")." : " a vypadává ze hry!";
+    } else {
+      resultText += " (proher celkem: " + loser.losses + ").";
+    }
+    card.appendChild(el("p","rules-text", resultText));
+    root.appendChild(card);
+
+    var remaining = activePlayers();
+    if(state.mode==="lives" && remaining.length<=1){
+      var cont = el("button","btn btn-gold btn-block","Ukázat výsledek");
+      cont.addEventListener("click", function(){ state.phase="gameover"; render(); });
+      root.appendChild(cont);
+      return;
+    }
+
+    var cont2 = el("button","btn btn-gold btn-block","Další kolo");
+    cont2.addEventListener("click", function(){
+      state.round += 1;
+      state.previousActual = null;
+      state.currentIndex = loser.active ? oc.loserIdx : nextActiveIndex(oc.loserIdx);
+      state.phase = "rolling";
+      render();
+    });
+    root.appendChild(cont2);
+  }
+
+  // ---------- GAME OVER ----------
+  function renderGameOver(){
+    root.innerHTML = "";
+    var brand = el("div","brand","<h1>Macháček</h1>");
+    root.appendChild(brand);
+
+    var card = el("div","card winner-card");
+    if(state.mode==="lives"){
+      var winner = activePlayers()[0];
+      card.appendChild(el("div","trophy","🏆"));
+      card.appendChild(el("h2",null, winner ? winner.name + " vyhrává!" : "Konec hry"));
+    } else {
+      card.appendChild(el("h2",null,"Konečné pořadí"));
+    }
+
+    var sorted = state.players.slice().sort(function(a,b){
+      if(state.mode==="lives"){
+        if(a.active!==b.active) return a.active? -1:1;
+        return b.lives - a.lives;
+      }
+      return a.losses - b.losses;
+    });
+    var ul = el("ul","standings");
+    sorted.forEach(function(p){
+      var li = document.createElement("li");
+      var right = state.mode==="lives" ? (p.active ? (p.lives + " ♥") : "vypadl/a") : (p.losses + " proher");
+      li.innerHTML = "<span>"+p.name+"</span><span>"+right+"</span>";
+      ul.appendChild(li);
+    });
+    card.appendChild(ul);
+    root.appendChild(card);
+
+    var again = el("button","btn btn-gold btn-block","Hrát znovu (stejní hráči)");
+    again.style.marginTop="14px";
+    again.addEventListener("click", startGame);
+    root.appendChild(again);
+
+    var newSetup = el("button","btn btn-outline btn-block","Nová sestava hráčů");
+    newSetup.style.marginTop="10px";
+    newSetup.addEventListener("click", function(){ state.phase="setup"; render(); });
+    root.appendChild(newSetup);
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
