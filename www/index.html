@@ -319,6 +319,44 @@
     border-bottom:1px solid #e6d9b8;
     font-weight:600;
   }
+
+  .lang{display:flex;gap:4px;}
+  .lang button{
+    background:rgba(255,255,255,.1);
+    color:var(--parchment-dark);
+    border:1px solid rgba(255,255,255,.2);
+    border-radius:6px;
+    padding:3px 8px;
+    font-size:.8em;
+    font-weight:700;
+  }
+  .lang button.active{background:var(--gold);color:#2b2118;border-color:var(--gold-dark);}
+  .setup-top{display:flex;justify-content:flex-end;margin-bottom:8px;}
+  .topbar-right{display:flex;gap:8px;}
+  .rules-body{font-size:.88em;line-height:1.5;color:#4a3c26;}
+  .rules-body h3{font-size:1em;margin:14px 0 4px;color:var(--wood-dark);}
+  .rules-body h3:first-child{margin-top:8px;}
+  .rules-body p{margin:4px 0;}
+  .rules-body ol{margin:4px 0;padding-left:20px;}
+  .rules-body li{margin-bottom:4px;}
+  .overlay{
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.65);
+    display:flex;align-items:center;justify-content:center;
+    padding:16px;
+    z-index:50;
+  }
+  .overlay-box{
+    background:var(--parchment);
+    color:var(--ink);
+    border-radius:14px;
+    padding:18px;
+    width:100%;
+    max-width:440px;
+    max-height:85vh;
+    overflow-y:auto;
+    border:1px solid var(--wood-dark);
+  }
 </style>
 </head>
 <body>
@@ -328,29 +366,205 @@
 (function(){
   "use strict";
 
-  // ---------- Mia / Macháček ----------
   var DICE_FACE = {"1":"⚀","2":"⚁","3":"⚂","4":"⚃","5":"⚄","6":"⚅"};
-
   function rollDie(){ return 1 + Math.floor(Math.random()*6); }
+
+  function esc(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  // ---------- TRANSLATIONS ----------
+  var I18N = {
+    cs:{
+      subtitle:"Blafovací hra s kostkami &middot; podávejte si mobil dokola",
+      players:"Hráči", playerPlaceholder:"Jméno hráče", add:"Přidat",
+      penaltyTitle:"Trest za prohru", modeLives:"Životy", modeFree:"Volný mód",
+      livesInfo:"Počet životů na hráče. Kdo přijde o všechny, vypadává.",
+      freeInfo:"Nikdo nevypadává &ndash; appka jen počítá, kolikrát kdo prohrál. Hráči si korigují konec sami.",
+      rulesSummary:"Jak se hraje Macháček?", rulesBtn:"Pravidla", close:"Zavřít",
+      start:"Začít hru", footer:"Appka hází za vás &ndash; jen podávejte mobil dál.",
+      round:"Kolo {n}", newGame:"Nová hra",
+      chipLosses:"{name} &middot; proher: {n}",
+      turnOf:"Na tahu: {name}",
+      handPhone:"Podej mobil hráči {name}. Ostatní se nedívejte.",
+      handPhoneNew:"Nové kolo. Podej mobil hráči {name}. Ostatní se nedívejte.",
+      remember:"Pamatuj, co bylo nahlášeno předtím &ndash; musíš říct stejně dobré nebo lepší číslo.",
+      roll:"Hodit kostkami",
+      rollingName:"{name} hází...", yourRoll:"{name}, tvůj hod:", onlyYou:"Jen ty se dívej.",
+      rolled:"(padlo {a} a {b}) &ndash; řekni ostatním nahlas svoje číslo, klidně zalži!",
+      saidIt:"Řekl/a jsem, předej dál",
+      passTo:"Předej mobil: {name}", whatSaid:"Co řekl/a {name}? Věříš tomu?",
+      believe:"Věřím – hodím dál", doubt:"Nevěřím – ukázat kostky",
+      revealed:"Odhaleno!", reallyHad:"{name} měl/a doopravdy",
+      whoLost:"Podle toho, co {name} nahlásil/a nahlas, kdo prohrál?",
+      liedLoses:"{name} lhal/a – prohrává", mistakenLoses:"{name} se spletl/a – prohrává",
+      bannerLie:"{name} lhal/a!", bannerTruth:"{name} mluvil/a pravdu!",
+      lostRound:"{name} prohrává tohle kolo",
+      lostLife:" a ztrácí život (zbývá {n}).", eliminated:" a vypadává ze hry!",
+      lossesTotal:" (proher celkem: {n}).",
+      showResult:"Ukázat výsledek", nextRound:"Další kolo",
+      wins:"{name} vyhrává!", gameOver:"Konec hry", standings:"Konečné pořadí",
+      outTxt:"vypadl/a", lossesLbl:"{n} proher",
+      playAgain:"Hrát znovu (stejní hráči)", newSetup:"Nová sestava hráčů",
+      rules:
+        "<h3>Cíl hry</h3>" +
+        "<p>Nepřijít o všechny životy (ve volném módu prohrát co nejméně kol). V módu Životy vyhrává poslední hráč, který ve hře zůstane.</p>" +
+        "<h3>Hody a jejich pořadí</h3>" +
+        "<p>Hraje se se dvěma kostkami. Hod se čte jako dvouciferné číslo, vyšší kostka první: když padne 5 a 3, je to &bdquo;53&ldquo;. Dvě stejné kostky tvoří dvojici (třeba &bdquo;44&ldquo;). Nejlepší hod je <b>21</b> (kostky 2 a 1), říká se mu Macháček.</p>" +
+        "<p><b>Od nejlepšího:</b> 21 &gt; 11 &gt; 66 &gt; 55 &gt; 44 &gt; 33 &gt; 22 &gt; 65 &gt; 64 &gt; 63 &gt; 62 &gt; 61 &gt; 54 &gt; 53 &gt; 52 &gt; 51 &gt; 43 &gt; 42 &gt; 41 &gt; 32 &gt; 31.</p>" +
+        "<h3>Jak probíhá tah</h3>" +
+        "<ol><li>Hráč na tahu si vezme mobil a klepne na <b>Hodit kostkami</b>. Kostky vidí jen on, ostatní se dívají jinam.</li>" +
+        "<li>Nahlas řekne ostatním číslo. Může říct pravdu, nebo zablafovat a nahlásit lepší hod, než měl. Appka nahlášené číslo nekontroluje, hlídáte ho sami.</li>" +
+        "<li>Pokud už někdo před ním nějaké číslo řekl, musí říct stejné nebo lepší.</li>" +
+        "<li>Předá mobil dalšímu hráči.</li></ol>" +
+        "<h3>Věřit, nebo nevěřit</h3>" +
+        "<p>Další hráč se rozhoduje. <b>Věřím</b> &ndash; vezme si mobil, hodí vlastními kostkami a nahlásí svoje číslo (stejné nebo lepší než předchozí). <b>Nevěřím</b> &ndash; appka odkryje, co předchozímu hráči opravdu padlo.</p>" +
+        "<h3>Kdo prohrává</h3>" +
+        "<p>Po odkrytí porovnejte skutečný hod s tím, co hráč nahlásil. Pokud nahlásil lepší hod, než měl, lhal a prohrává. Pokud řekl pravdu, prohrává ten, kdo mu nevěřil. Appka neví, co bylo řečeno nahlas, proto prohrávajícího zvolíte sami jedním klepnutím.</p>" +
+        "<h3>Co se stane po prohře</h3>" +
+        "<p>V módu Životy ztrácí prohrávající jeden život a na nule vypadává ze hry. Ve volném módu se mu jen přičte prohra. Další kolo začíná ten, kdo prohrál.</p>" +
+        "<h3>Tip</h3>" +
+        "<p>Po nahlášení 21 už nikdo nemůže říct víc, takže další hráč může jen zopakovat 21, nebo nevěřit.</p>"
+    },
+    en:{
+      subtitle:"A bluffing dice game &middot; pass the phone around",
+      players:"Players", playerPlaceholder:"Player name", add:"Add",
+      penaltyTitle:"Penalty for losing", modeLives:"Lives", modeFree:"Free mode",
+      livesInfo:"Lives per player. Whoever loses all of them is out.",
+      freeInfo:"Nobody is eliminated &ndash; the app just counts how often each player lost. Decide among yourselves when to stop.",
+      rulesSummary:"How to play Macháček", rulesBtn:"Rules", close:"Close",
+      start:"Start game", footer:"The app rolls for you &ndash; just keep passing the phone.",
+      round:"Round {n}", newGame:"New game",
+      chipLosses:"{name} &middot; losses: {n}",
+      turnOf:"Your turn: {name}",
+      handPhone:"Hand the phone to {name}. Everyone else, look away.",
+      handPhoneNew:"New round. Hand the phone to {name}. Everyone else, look away.",
+      remember:"Remember what was announced before &ndash; you must announce the same number or a better one.",
+      roll:"Roll the dice",
+      rollingName:"{name} is rolling...", yourRoll:"{name}, your roll:", onlyYou:"Only you look.",
+      rolled:"(you rolled {a} and {b}) &ndash; tell the others a number out loud, lie if you like!",
+      saidIt:"I've said it, pass it on",
+      passTo:"Pass the phone to: {name}", whatSaid:"What did {name} say? Do you believe it?",
+      believe:"I believe it – I'll roll", doubt:"I doubt it – show the dice",
+      revealed:"Revealed!", reallyHad:"{name} really had",
+      whoLost:"Based on what {name} said out loud, who lost?",
+      liedLoses:"{name} lied – loses", mistakenLoses:"{name} was wrong – loses",
+      bannerLie:"{name} lied!", bannerTruth:"{name} told the truth!",
+      lostRound:"{name} loses this round",
+      lostLife:" and loses a life ({n} left).", eliminated:" and is out of the game!",
+      lossesTotal:" (total losses: {n}).",
+      showResult:"Show result", nextRound:"Next round",
+      wins:"{name} wins!", gameOver:"Game over", standings:"Final standings",
+      outTxt:"out", lossesLbl:"{n} losses",
+      playAgain:"Play again (same players)", newSetup:"New set of players",
+      rules:
+        "<h3>Goal of the game</h3>" +
+        "<p>Don't lose all your lives (in free mode: lose as few rounds as possible). In Lives mode the last player still in the game wins.</p>" +
+        "<h3>Rolls and their ranking</h3>" +
+        "<p>The game uses two dice. A roll is read as a two-digit number, higher die first: if you roll a 5 and a 3, it's &ldquo;53&rdquo;. Two equal dice form a pair (for example &ldquo;44&rdquo;). The best roll is <b>21</b> (dice 2 and 1), called Macháček.</p>" +
+        "<p><b>From best to worst:</b> 21 &gt; 11 &gt; 66 &gt; 55 &gt; 44 &gt; 33 &gt; 22 &gt; 65 &gt; 64 &gt; 63 &gt; 62 &gt; 61 &gt; 54 &gt; 53 &gt; 52 &gt; 51 &gt; 43 &gt; 42 &gt; 41 &gt; 32 &gt; 31.</p>" +
+        "<h3>How a turn works</h3>" +
+        "<ol><li>The current player takes the phone and taps <b>Roll the dice</b>. Only they see the dice; everyone else looks away.</li>" +
+        "<li>They announce a number to the others out loud. They can tell the truth or bluff by announcing a better roll than they actually got. The app doesn't check the announcement, you keep each other honest.</li>" +
+        "<li>If someone before them already announced a number, they must announce the same number or a better one.</li>" +
+        "<li>They pass the phone to the next player.</li></ol>" +
+        "<h3>Believe or doubt</h3>" +
+        "<p>The next player decides. <b>Believe</b> &ndash; they take the phone, roll their own dice and announce their number (the same as or better than the previous one). <b>Doubt</b> &ndash; the app reveals what the previous player really rolled.</p>" +
+        "<h3>Who loses</h3>" +
+        "<p>After the reveal, compare the real roll with what the player announced. If they announced a better roll than they had, they lied and lose. If they told the truth, the player who didn't believe them loses. The app doesn't know what was said out loud, so you pick the loser yourselves with one tap.</p>" +
+        "<h3>After a loss</h3>" +
+        "<p>In Lives mode the loser loses one life and is out at zero. In free mode a loss is simply added to their count. The loser starts the next round.</p>" +
+        "<h3>Tip</h3>" +
+        "<p>After a 21 is announced nobody can go higher, so the next player can only announce 21 again or doubt it.</p>"
+    },
+    de:{
+      subtitle:"Ein Bluff-Würfelspiel &middot; reicht das Handy herum",
+      players:"Spieler", playerPlaceholder:"Spielername", add:"Hinzufügen",
+      penaltyTitle:"Strafe fürs Verlieren", modeLives:"Leben", modeFree:"Freier Modus",
+      livesInfo:"Leben pro Spieler. Wer alle verliert, scheidet aus.",
+      freeInfo:"Niemand scheidet aus &ndash; die App zählt nur, wie oft jeder verloren hat. Das Ende bestimmt ihr selbst.",
+      rulesSummary:"So wird Macháček gespielt", rulesBtn:"Regeln", close:"Schließen",
+      start:"Spiel starten", footer:"Die App würfelt für euch &ndash; reicht einfach das Handy weiter.",
+      round:"Runde {n}", newGame:"Neues Spiel",
+      chipLosses:"{name} &middot; Niederlagen: {n}",
+      turnOf:"Am Zug: {name}",
+      handPhone:"Gib das Handy an {name}. Alle anderen wegschauen.",
+      handPhoneNew:"Neue Runde. Gib das Handy an {name}. Alle anderen wegschauen.",
+      remember:"Merk dir, was zuvor angesagt wurde &ndash; du musst dieselbe oder eine bessere Zahl ansagen.",
+      roll:"Würfeln",
+      rollingName:"{name} würfelt...", yourRoll:"{name}, dein Wurf:", onlyYou:"Nur du schaust.",
+      rolled:"(gewürfelt: {a} und {b}) &ndash; sag den anderen laut eine Zahl an, lügen ist erlaubt!",
+      saidIt:"Habe es gesagt, weitergeben",
+      passTo:"Gib das Handy an: {name}", whatSaid:"Was hat {name} gesagt? Glaubst du es?",
+      believe:"Ich glaube es – ich würfle", doubt:"Ich glaube es nicht – Würfel zeigen",
+      revealed:"Aufgedeckt!", reallyHad:"{name} hatte tatsächlich",
+      whoLost:"Wer hat verloren, nach dem, was {name} laut gesagt hat?",
+      liedLoses:"{name} hat gelogen – verliert", mistakenLoses:"{name} lag falsch – verliert",
+      bannerLie:"{name} hat gelogen!", bannerTruth:"{name} hat die Wahrheit gesagt!",
+      lostRound:"{name} verliert diese Runde",
+      lostLife:" und verliert ein Leben (noch {n}).", eliminated:" und scheidet aus!",
+      lossesTotal:" (Niederlagen insgesamt: {n}).",
+      showResult:"Ergebnis anzeigen", nextRound:"Nächste Runde",
+      wins:"{name} gewinnt!", gameOver:"Spielende", standings:"Endstand",
+      outTxt:"ausgeschieden", lossesLbl:"{n} Niederlagen",
+      playAgain:"Nochmal spielen (gleiche Spieler)", newSetup:"Neue Spielerrunde",
+      rules:
+        "<h3>Ziel des Spiels</h3>" +
+        "<p>Nicht alle Leben verlieren (im freien Modus: möglichst wenige Runden verlieren). Im Modus Leben gewinnt, wer als Letzter im Spiel bleibt.</p>" +
+        "<h3>Würfe und ihre Rangfolge</h3>" +
+        "<p>Gespielt wird mit zwei Würfeln. Der Wurf wird als zweistellige Zahl gelesen, der höhere Würfel zuerst: bei 5 und 3 ist es &bdquo;53&ldquo;. Zwei gleiche Würfel bilden einen Pasch (z. B. &bdquo;44&ldquo;). Der beste Wurf ist die <b>21</b> (Würfel 2 und 1), der Macháček.</p>" +
+        "<p><b>Vom besten zum schlechtesten:</b> 21 &gt; 11 &gt; 66 &gt; 55 &gt; 44 &gt; 33 &gt; 22 &gt; 65 &gt; 64 &gt; 63 &gt; 62 &gt; 61 &gt; 54 &gt; 53 &gt; 52 &gt; 51 &gt; 43 &gt; 42 &gt; 41 &gt; 32 &gt; 31.</p>" +
+        "<h3>Ablauf eines Zuges</h3>" +
+        "<ol><li>Wer dran ist, nimmt das Handy und tippt auf <b>Würfeln</b>. Nur er sieht die Würfel, alle anderen schauen weg.</li>" +
+        "<li>Er sagt den anderen laut eine Zahl an. Er darf die Wahrheit sagen oder bluffen und einen besseren Wurf ansagen, als er hat. Die App prüft die Ansage nicht, das überwacht ihr selbst.</li>" +
+        "<li>Hat schon jemand vor ihm eine Zahl angesagt, muss er dieselbe oder eine bessere ansagen.</li>" +
+        "<li>Er gibt das Handy an den nächsten Spieler weiter.</li></ol>" +
+        "<h3>Glauben oder nicht glauben</h3>" +
+        "<p>Der nächste Spieler entscheidet. <b>Ich glaube es</b> &ndash; er nimmt das Handy, würfelt selbst und sagt seine Zahl an (gleich oder besser als die vorherige). <b>Ich glaube es nicht</b> &ndash; die App deckt auf, was der vorherige Spieler wirklich gewürfelt hat.</p>" +
+        "<h3>Wer verliert</h3>" +
+        "<p>Vergleicht nach dem Aufdecken den echten Wurf mit der Ansage. Wurde ein besserer Wurf angesagt als gewürfelt, hat der Spieler gelogen und verliert. Hat er die Wahrheit gesagt, verliert der, der ihm nicht geglaubt hat. Die App weiß nicht, was laut gesagt wurde, deshalb wählt ihr den Verlierer selbst mit einem Tipp.</p>" +
+        "<h3>Nach einer Niederlage</h3>" +
+        "<p>Im Modus Leben verliert der Verlierer ein Leben und scheidet bei null aus. Im freien Modus wird ihm einfach eine Niederlage gutgeschrieben. Die nächste Runde beginnt der Verlierer.</p>" +
+        "<h3>Tipp</h3>" +
+        "<p>Nach einer angesagten 21 kann niemand mehr höher gehen, der nächste Spieler kann also nur wieder 21 ansagen oder nicht glauben.</p>"
+    }
+  };
+
+  function detectLang(){
+    var nav = ((navigator.language || "en") + "").slice(0,2).toLowerCase();
+    return I18N[nav] ? nav : "en";
+  }
 
   // ---------- state ----------
   var state = {
+    lang: detectLang(),
     phase:"setup", // setup | rolling | spinning | revealed | pass | doubt | resolved | gameover
-    players:[], // {name, lives, losses, active}
-    mode:"lives", // lives | free
+    players:[],
+    mode:"lives",
     startingLives:3,
     currentIndex:0,
-    previousActual:null, // {playerIndex, dice:[d1,d2]}
-    liveDice:[1,1], // dice currently shown (animating or settled)
+    previousActual:null,
+    liveDice:[1,1],
     round:1,
-    outcome:null, // {loser: 'declarer'|'challenger', loserIndex}
+    outcome:null,
     newPlayerName:"",
+    showRules:false,
     spinTimer:null
   };
 
-  function activePlayers(){
-    return state.players.filter(function(p){return p.active;});
+  function t(key, vars){
+    var s = I18N[state.lang][key];
+    if(s === undefined) s = I18N.en[key] || key;
+    if(vars){
+      Object.keys(vars).forEach(function(k){
+        var v = typeof vars[k] === "number" ? vars[k] : esc(vars[k]);
+        s = s.split("{"+k+"}").join(v);
+      });
+    }
+    return s;
   }
+
+  function activePlayers(){ return state.players.filter(function(p){return p.active;}); }
 
   function nextActiveIndex(from){
     var n = state.players.length;
@@ -362,14 +576,7 @@
     return from;
   }
 
-  // ---------- render root ----------
   var root = document.getElementById("app");
-
-  function render(){
-    if(state.phase==="setup") return renderSetup();
-    if(state.phase==="gameover") return renderGameOver();
-    return renderGame();
-  }
 
   function el(tag, cls, html){
     var e = document.createElement(tag);
@@ -378,25 +585,67 @@
     return e;
   }
 
-  // ---------- SETUP SCREEN ----------
+  function langSwitch(){
+    var d = el("div","lang");
+    ["cs","en","de"].forEach(function(l){
+      var b = el("button", l===state.lang ? "active" : "", l.toUpperCase());
+      b.addEventListener("click", function(){
+        if(state.phase==="spinning") return;
+        state.lang = l;
+        render();
+      });
+      d.appendChild(b);
+    });
+    return d;
+  }
+
+  function rulesOverlay(){
+    var ov = el("div","overlay");
+    var box = el("div","overlay-box");
+    box.appendChild(el("div","rules-body", t("rules")));
+    var closeBtn = el("button","btn btn-gold btn-block", t("close"));
+    closeBtn.style.marginTop = "12px";
+    closeBtn.addEventListener("click", function(){ state.showRules = false; render(); });
+    box.appendChild(closeBtn);
+    ov.appendChild(box);
+    ov.addEventListener("click", function(e){
+      if(e.target === ov){ state.showRules = false; render(); }
+    });
+    return ov;
+  }
+
+  // ---------- render root ----------
+  function render(){
+    document.documentElement.lang = state.lang;
+    document.title = "Macháček";
+    if(state.phase==="setup") renderSetup();
+    else if(state.phase==="gameover") renderGameOver();
+    else renderGame();
+    if(state.showRules) root.appendChild(rulesOverlay());
+  }
+
+  // ---------- SETUP ----------
   function renderSetup(){
     root.innerHTML = "";
 
-    var brand = el("div","brand","<h1>Macháček</h1><p>Blafovací hra s kostkami &middot; podávejte si mobil dokola</p>");
-    root.appendChild(brand);
+    var top = el("div","setup-top");
+    top.appendChild(langSwitch());
+    root.appendChild(top);
+
+    root.appendChild(el("div","brand","<h1>Macháček</h1><p>" + t("subtitle") + "</p>"));
 
     var card = el("div","card");
-    card.appendChild(el("h2",null,"Hráči"));
+    card.appendChild(el("h2",null,t("players")));
 
     var row = el("div","row");
     var input = document.createElement("input");
     input.type="text";
-    input.placeholder="Jméno hráče";
+    input.placeholder = I18N[state.lang].playerPlaceholder;
     input.value = state.newPlayerName;
     input.addEventListener("input", function(e){ state.newPlayerName = e.target.value; });
     input.addEventListener("keydown", function(e){ if(e.key==="Enter"){ addPlayer(); } });
     row.appendChild(input);
-    var addBtn = el("button","btn-add","Přidat");
+    var addBtn = el("button","btn-add",t("add"));
     addBtn.addEventListener("click", addPlayer);
     row.appendChild(addBtn);
     card.appendChild(row);
@@ -404,8 +653,7 @@
     var list = el("ul","player-list");
     state.players.forEach(function(p, idx){
       var li = document.createElement("li");
-      var span = el("span",null,p.name);
-      li.appendChild(span);
+      li.appendChild(el("span",null,esc(p.name)));
       var rm = el("button",null,"&times;");
       rm.addEventListener("click", function(){ state.players.splice(idx,1); render(); });
       li.appendChild(rm);
@@ -415,10 +663,10 @@
     root.appendChild(card);
 
     var modeCard = el("div","card");
-    modeCard.appendChild(el("h2",null,"Trest za prohru"));
+    modeCard.appendChild(el("h2",null,t("penaltyTitle")));
     var seg = el("div","segmented");
-    var b1 = el("button", state.mode==="lives"?"active":"", "Životy");
-    var b2 = el("button", state.mode==="free"?"active":"", "Volný mód");
+    var b1 = el("button", state.mode==="lives"?"active":"", t("modeLives"));
+    var b2 = el("button", state.mode==="free"?"active":"", t("modeFree"));
     b1.addEventListener("click", function(){ state.mode="lives"; render(); });
     b2.addEventListener("click", function(){ state.mode="free"; render(); });
     seg.appendChild(b1); seg.appendChild(b2);
@@ -432,31 +680,26 @@
       minus.addEventListener("click", function(){ if(state.startingLives>1) state.startingLives--; render(); });
       plus.addEventListener("click", function(){ if(state.startingLives<9) state.startingLives++; render(); });
       stepper.appendChild(minus); stepper.appendChild(val); stepper.appendChild(plus);
-      modeCard.appendChild(el("p","rules-text","Počet životů na hráče. Kdo přijde o všechny, vypadává."));
+      modeCard.appendChild(el("p","rules-text",t("livesInfo")));
       modeCard.appendChild(stepper);
     } else {
-      modeCard.appendChild(el("p","rules-text","Nikdo nevypadává &ndash; appka jen počítá, kolikrát kdo prohrál. Hráči si korigují konec sami."));
+      modeCard.appendChild(el("p","rules-text",t("freeInfo")));
     }
     root.appendChild(modeCard);
 
     var rulesCard = el("div","card");
     var det = document.createElement("details");
-    det.appendChild(el("summary",null,"Jak se hraje Macháček?"));
-    det.appendChild(el("div","rules-text",
-      "Hráč na tahu hodí kostkami potají (mobil vidí jen on) a nahlásí ostatním svoje číslo nahlas &ndash; může klidně lhát, appka to nekontroluje. " +
-      "Další hráč se buď rozhodne <b>věřit</b> (hodí dál a nahlásí svoje číslo), nebo <b>nevěří</b> a nechá kostky odkrýt v appce. " +
-      "Pokud předchozí hráč lhal, prohrává on. Pokud mluvil pravdu, prohrává ten, kdo nevěřil.<br><br>" +
-      "<b>Pořadí hodů od nejlepšího:</b> 21 (Macháček) &gt; 11 &gt; 66 &gt; 55 &gt; 44 &gt; 33 &gt; 22 &gt; 65 &gt; 64 &gt; ... &gt; 31."
-    ));
+    det.appendChild(el("summary",null,t("rulesSummary")));
+    det.appendChild(el("div","rules-body",t("rules")));
     rulesCard.appendChild(det);
     root.appendChild(rulesCard);
 
-    var startBtn = el("button","btn btn-gold btn-block", "Začít hru");
+    var startBtn = el("button","btn btn-gold btn-block", t("start"));
     startBtn.disabled = state.players.length < 2;
     startBtn.addEventListener("click", startGame);
     root.appendChild(startBtn);
 
-    root.appendChild(el("div","footer-note","Appka hází za vás &ndash; jen podávejte mobil dál."));
+    root.appendChild(el("div","footer-note",t("footer")));
   }
 
   function addPlayer(){
@@ -476,15 +719,23 @@
     render();
   }
 
-  // ---------- GAME SCREEN ----------
+  // ---------- GAME ----------
   function renderGame(){
     root.innerHTML = "";
 
     var top = el("div","topbar");
-    top.appendChild(el("span",null,"Kolo " + state.round));
-    var endBtn = el("button",null,"Nová hra");
-    endBtn.addEventListener("click", function(){ state.phase="setup"; render(); });
-    top.appendChild(endBtn);
+    top.appendChild(el("span",null,t("round",{n:state.round})));
+    top.appendChild(langSwitch());
+    var right = el("div","topbar-right");
+    var rb = el("button",null,t("rulesBtn"));
+    rb.addEventListener("click", function(){ state.showRules = true; render(); });
+    var endBtn = el("button",null,t("newGame"));
+    endBtn.addEventListener("click", function(){
+      if(state.spinTimer){ clearInterval(state.spinTimer); state.spinTimer=null; }
+      state.phase="setup"; render();
+    });
+    right.appendChild(rb); right.appendChild(endBtn);
+    top.appendChild(right);
     root.appendChild(top);
 
     var scoreboard = el("div","scoreboard");
@@ -492,12 +743,12 @@
       var cls = "chip" + (idx===state.currentIndex && p.active ? " current":"") + (!p.active?" out":"");
       var chip = el("div", cls);
       if(state.mode==="lives"){
-        chip.innerHTML = "<span>"+p.name+"</span>";
+        chip.innerHTML = "<span>"+esc(p.name)+"</span>";
         var dots = el("span","lives-dots");
         for(var i=0;i<p.lives;i++){ dots.appendChild(el("span","dot")); }
         chip.appendChild(dots);
       } else {
-        chip.innerHTML = "<span>"+p.name+" &middot; proher: "+p.losses+"</span>";
+        chip.innerHTML = "<span>"+t("chipLosses",{name:p.name,n:p.losses})+"</span>";
       }
       scoreboard.appendChild(chip);
     });
@@ -513,14 +764,14 @@
   function renderRolling(){
     var current = state.players[state.currentIndex];
     var card = el("div","card turn-card");
-    card.appendChild(el("div","who","Na tahu: " + current.name));
+    card.appendChild(el("div","who", t("turnOf",{name:current.name})));
     if(state.previousActual){
-      card.appendChild(el("div","hint","Podej mobil hráči " + current.name + ". Ostatní se nedívejte."));
-      card.appendChild(el("div","prev-declared","Pamatuj, co bylo nahlášeno předtím &ndash; musíš říct stejně dobré nebo lepší číslo."));
+      card.appendChild(el("div","hint", t("handPhone",{name:current.name})));
+      card.appendChild(el("div","prev-declared", t("remember")));
     } else {
-      card.appendChild(el("div","hint","Nové kolo. Podej mobil hráči " + current.name + ". Ostatní se nedívejte."));
+      card.appendChild(el("div","hint", t("handPhoneNew",{name:current.name})));
     }
-    var btn = el("button","btn btn-gold btn-block","Hodit kostkami");
+    var btn = el("button","btn btn-gold btn-block", t("roll"));
     btn.addEventListener("click", startRollAnimation);
     card.appendChild(btn);
     root.appendChild(card);
@@ -539,6 +790,7 @@
       state.liveDice = [rollDie(), rollDie()];
       if(ticks >= maxTicks){
         clearInterval(state.spinTimer);
+        state.spinTimer = null;
         state.liveDice = [d1, d2];
         state.phase = "revealed";
         render();
@@ -560,18 +812,17 @@
     var current = state.players[state.currentIndex];
     var spinning = state.phase === "spinning";
     var card = el("div","card turn-card");
-    card.appendChild(el("div","who", current.name + (spinning ? " hází..." : ", tvůj hod:")));
-    card.appendChild(el("div","hint", spinning ? "" : "Jen ty se dívej."));
+    card.appendChild(el("div","who", spinning ? t("rollingName",{name:current.name}) : t("yourRoll",{name:current.name})));
+    card.appendChild(el("div","hint", spinning ? "" : t("onlyYou")));
 
     var stage = el("div","dice-stage");
-    var d1 = el("div","die " + (spinning ? "spinning":"settled"), DICE_FACE[String(state.liveDice[0])]);
-    var d2 = el("div","die " + (spinning ? "spinning":"settled"), DICE_FACE[String(state.liveDice[1])]);
-    stage.appendChild(d1); stage.appendChild(d2);
+    stage.appendChild(el("div","die " + (spinning ? "spinning":"settled"), DICE_FACE[String(state.liveDice[0])]));
+    stage.appendChild(el("div","die " + (spinning ? "spinning":"settled"), DICE_FACE[String(state.liveDice[1])]));
     card.appendChild(stage);
 
     if(!spinning){
-      card.appendChild(el("div","dice-sub","(padlo " + state.liveDice[0] + " a " + state.liveDice[1] + ") &ndash; řekni ostatním nahlas svoje číslo, klidně zalži!"));
-      var btn = el("button","btn btn-gold btn-block","Řekl/a jsem, předej dál");
+      card.appendChild(el("div","dice-sub", t("rolled",{a:state.liveDice[0], b:state.liveDice[1]})));
+      var btn = el("button","btn btn-gold btn-block", t("saidIt"));
       btn.addEventListener("click", function(){
         state.previousActual = { playerIndex: state.currentIndex, dice: state.liveDice.slice() };
         state.currentIndex = nextActiveIndex(state.currentIndex);
@@ -587,15 +838,15 @@
     var next = state.players[state.currentIndex];
     var prevPlayer = state.players[state.previousActual.playerIndex];
     var card = el("div","card turn-card");
-    card.appendChild(el("div","who","Předej mobil: " + next.name));
-    card.appendChild(el("div","hint","Co řekl/a " + prevPlayer.name + "? Věříš tomu?"));
+    card.appendChild(el("div","who", t("passTo",{name:next.name})));
+    card.appendChild(el("div","hint", t("whatSaid",{name:prevPlayer.name})));
 
-    var believeBtn = el("button","btn btn-truth btn-block","Věřím – hodím dál");
+    var believeBtn = el("button","btn btn-truth btn-block", t("believe"));
     believeBtn.style.marginBottom = "10px";
     believeBtn.addEventListener("click", function(){ state.phase="rolling"; render(); });
     card.appendChild(believeBtn);
 
-    var doubtBtn = el("button","btn btn-danger btn-block","Nevěřím – ukázat kostky");
+    var doubtBtn = el("button","btn btn-danger btn-block", t("doubt"));
     doubtBtn.addEventListener("click", function(){ state.phase="doubt"; render(); });
     card.appendChild(doubtBtn);
 
@@ -608,25 +859,25 @@
     var challenger = state.players[state.currentIndex];
 
     var card = el("div","card turn-card");
-    card.appendChild(el("div","who","Odhaleno!"));
+    card.appendChild(el("div","who", t("revealed")));
 
     var box = el("div","reveal-box");
-    box.innerHTML = "<div class='lbl'>" + declarer.name + " měl/a doopravdy</div>" +
+    box.innerHTML = "<div class='lbl'>" + t("reallyHad",{name:declarer.name}) + "</div>" +
       "<div class='dice-stage' style='margin:8px 0 0;'>" +
         "<div class='die settled'>" + DICE_FACE[String(pa.dice[0])] + "</div>" +
         "<div class='die settled'>" + DICE_FACE[String(pa.dice[1])] + "</div>" +
       "</div>" +
-      "<div class='dice-sub' style='margin-top:8px;'>(" + pa.dice[0] + " a " + pa.dice[1] + ")</div>";
+      "<div class='dice-sub' style='margin-top:8px;'>(" + pa.dice[0] + " &middot; " + pa.dice[1] + ")</div>";
     card.appendChild(box);
 
-    card.appendChild(el("div","hint","Podle toho, co "+declarer.name+" nahlásil/a nahlas, kdo prohrál?"));
+    card.appendChild(el("div","hint", t("whoLost",{name:declarer.name})));
 
-    var lieBtn = el("button","btn btn-danger btn-block", declarer.name + " lhal/a – prohrává");
+    var lieBtn = el("button","btn btn-danger btn-block", t("liedLoses",{name:declarer.name}));
     lieBtn.style.marginBottom="10px";
     lieBtn.addEventListener("click", function(){ applyVerdict(true); });
     card.appendChild(lieBtn);
 
-    var truthBtn = el("button","btn btn-truth btn-block", challenger.name + " se spletl/a – prohrává");
+    var truthBtn = el("button","btn btn-truth btn-block", t("mistakenLoses",{name:challenger.name}));
     truthBtn.addEventListener("click", function(){ applyVerdict(false); });
     card.appendChild(truthBtn);
 
@@ -655,32 +906,29 @@
   function renderResolved(){
     var oc = state.outcome;
     var declarer = state.players[oc.declarerIdx];
-    var challenger = state.players[oc.challengerIdx];
     var loser = state.players[oc.loserIdx];
 
     var card = el("div","card");
-    var banner = el("div","outcome-banner " + (oc.liar ? "lie":"truth"),
-      oc.liar ? (declarer.name + " lhal/a!") : (declarer.name + " mluvil/a pravdu!"));
-    card.appendChild(banner);
+    card.appendChild(el("div","outcome-banner " + (oc.liar ? "lie":"truth"),
+      oc.liar ? t("bannerLie",{name:declarer.name}) : t("bannerTruth",{name:declarer.name})));
 
-    var resultText = loser.name + " prohrává tohle kolo";
+    var resultText = t("lostRound",{name:loser.name});
     if(state.mode==="lives"){
-      resultText += loser.active ? " a ztrácí život (zbývá " + loser.lives + ")." : " a vypadává ze hry!";
+      resultText += loser.active ? t("lostLife",{n:loser.lives}) : t("eliminated");
     } else {
-      resultText += " (proher celkem: " + loser.losses + ").";
+      resultText += t("lossesTotal",{n:loser.losses});
     }
     card.appendChild(el("p","rules-text", resultText));
     root.appendChild(card);
 
-    var remaining = activePlayers();
-    if(state.mode==="lives" && remaining.length<=1){
-      var cont = el("button","btn btn-gold btn-block","Ukázat výsledek");
+    if(state.mode==="lives" && activePlayers().length<=1){
+      var cont = el("button","btn btn-gold btn-block", t("showResult"));
       cont.addEventListener("click", function(){ state.phase="gameover"; render(); });
       root.appendChild(cont);
       return;
     }
 
-    var cont2 = el("button","btn btn-gold btn-block","Další kolo");
+    var cont2 = el("button","btn btn-gold btn-block", t("nextRound"));
     cont2.addEventListener("click", function(){
       state.round += 1;
       state.previousActual = null;
@@ -694,16 +942,18 @@
   // ---------- GAME OVER ----------
   function renderGameOver(){
     root.innerHTML = "";
-    var brand = el("div","brand","<h1>Macháček</h1>");
-    root.appendChild(brand);
+    var top = el("div","setup-top");
+    top.appendChild(langSwitch());
+    root.appendChild(top);
+    root.appendChild(el("div","brand","<h1>Macháček</h1>"));
 
     var card = el("div","card winner-card");
     if(state.mode==="lives"){
       var winner = activePlayers()[0];
       card.appendChild(el("div","trophy","🏆"));
-      card.appendChild(el("h2",null, winner ? winner.name + " vyhrává!" : "Konec hry"));
+      card.appendChild(el("h2",null, winner ? t("wins",{name:winner.name}) : t("gameOver")));
     } else {
-      card.appendChild(el("h2",null,"Konečné pořadí"));
+      card.appendChild(el("h2",null,t("standings")));
     }
 
     var sorted = state.players.slice().sort(function(a,b){
@@ -716,19 +966,19 @@
     var ul = el("ul","standings");
     sorted.forEach(function(p){
       var li = document.createElement("li");
-      var right = state.mode==="lives" ? (p.active ? (p.lives + " ♥") : "vypadl/a") : (p.losses + " proher");
-      li.innerHTML = "<span>"+p.name+"</span><span>"+right+"</span>";
+      var right = state.mode==="lives" ? (p.active ? (p.lives + " ♥") : t("outTxt")) : t("lossesLbl",{n:p.losses});
+      li.innerHTML = "<span>"+esc(p.name)+"</span><span>"+right+"</span>";
       ul.appendChild(li);
     });
     card.appendChild(ul);
     root.appendChild(card);
 
-    var again = el("button","btn btn-gold btn-block","Hrát znovu (stejní hráči)");
+    var again = el("button","btn btn-gold btn-block", t("playAgain"));
     again.style.marginTop="14px";
     again.addEventListener("click", startGame);
     root.appendChild(again);
 
-    var newSetup = el("button","btn btn-outline btn-block","Nová sestava hráčů");
+    var newSetup = el("button","btn btn-outline btn-block", t("newSetup"));
     newSetup.style.marginTop="10px";
     newSetup.addEventListener("click", function(){ state.phase="setup"; render(); });
     root.appendChild(newSetup);
@@ -736,6 +986,7 @@
 
   render();
 })();
+
 </script>
 </body>
 </html>
